@@ -14,7 +14,6 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
-
 ```
 
 Nesta etapa foram importadas as bibliotecas responsáveis por:
@@ -30,7 +29,6 @@ Avaliação do desempenho das previsões
 ```
 df = pd.read_csv("Crude_Oil.csv", sep=",", parse_dates=["Date"])
 df = df.sort_values("Date").reset_index(drop=True)
-
 ```
 
 O dataset foi carregado e ordenado cronologicamente para preservar a sequência temporal dos preços do petróleo.
@@ -62,7 +60,6 @@ Também foi realizada a padronização dos nomes das variáveis para facilitar a
 
 ```
 df.describe()
-
 ```
 
 Foram analisadas medidas estatísticas importantes:
@@ -80,7 +77,6 @@ Essa etapa permitiu compreender a distribuição dos preços ao longo dos anos.
 
 ```
 df.isnull().sum()
-
 ```
 
 Foi realizada uma validação da qualidade dos dados.
@@ -122,7 +118,6 @@ Presença de movimentos extremos
 ```
 corr = df.drop(columns=["Data"]).corr()
 sns.heatmap(corr, annot=True)
-
 ```
 
 A matriz de correlação permite identificar relações entre as variáveis do dataset.
@@ -146,7 +141,6 @@ Essas informações ajudam o modelo a identificar padrões sazonais ao longo do 
 
 ```
 df['Fechamento_futuro_7d'] = df["Fechamento"].shift(-7)
-Análise
 ```
 
 A variável alvo foi criada deslocando o preço de fechamento em 7 dias.
@@ -167,7 +161,6 @@ features = [
     'Mes',
     'Ano'
 ]
-
 ```
 
 Foram selecionadas as variáveis que servirão como entrada para o modelo preditivo.
@@ -183,7 +176,6 @@ RandomForestRegressor(
     max_depth=10,
     random_state=42
 )
-
 ```
 
 Foi utilizado o algoritmo Random Forest Regressor.
