@@ -1,143 +1,188 @@
-📈 Previsão do Preço do Petróleo com Machine Learning (Versão 2)
-📖 Sobre o Projeto
-
-Este projeto representa a segunda versão do meu estudo de previsão de preços do petróleo utilizando Ciência de Dados e Machine Learning.
-
-A primeira versão foi desenvolvida durante os meus primeiros contatos com análise de dados em Python. O foco era entender conceitos fundamentais como manipulação de datasets, visualização de informações e construção de modelos preditivos básicos.
-
-Após aprofundar meus conhecimentos em Python, análise exploratória de dados e algoritmos de Machine Learning, decidi reconstruir o projeto aplicando técnicas mais avançadas e uma estrutura mais organizada. O resultado foi uma solução mais robusta, capaz de realizar previsões futuras com melhor desempenho e maior confiabilidade.
-
 🎯 Objetivo
 
-Construir um modelo de Machine Learning capaz de prever o preço de fechamento do petróleo para os próximos 7 dias com base no comportamento histórico do mercado.
+Prever o preço de fechamento do petróleo para os próximos 7 dias utilizando Machine Learning e dados históricos do mercado.
 
-Além da previsão, o projeto busca demonstrar todo o fluxo de trabalho de um cientista de dados:
+📦 Importação das Bibliotecas
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import numpy as np
 
-Importação dos dados
-Limpeza e tratamento
-Análise exploratória
-Engenharia de atributos
-Treinamento do modelo
-Avaliação de desempenho
-Geração de previsões futuras
-📊 Base de Dados
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
+Análise
 
-A base utilizada contém informações históricas do mercado de petróleo entre agosto de 2000 e abril de 2026, incluindo:
+Nesta etapa foram importadas as bibliotecas responsáveis por:
 
-Data
-Preço de abertura
-Máxima do dia
-Mínima do dia
-Fechamento
-Variação percentual diária
+Manipulação dos dados (Pandas)
+Operações matemáticas (NumPy)
+Visualização gráfica (Matplotlib e Seaborn)
+Construção do modelo de Machine Learning (Scikit-Learn)
+Avaliação do desempenho das previsões
+📂 Carregamento dos Dados
+df = pd.read_csv("Crude_Oil.csv", sep=",", parse_dates=["Date"])
+df = df.sort_values("Date").reset_index(drop=True)
+Análise
 
-Total de registros analisados: 6.435 observações.
+O dataset foi carregado e ordenado cronologicamente para preservar a sequência temporal dos preços do petróleo.
 
-🔍 Análise Exploratória
+Isso é fundamental para evitar vazamento de informações futuras durante o treinamento.
 
-Durante a etapa exploratória foram realizadas:
+🧹 Limpeza e Organização
+df.drop(columns=["Volume", "Intraday_Volatility"], inplace=True)
 
-Evolução histórica do preço
+df.columns = [
+    "Data",
+    "Abertura",
+    "Alta",
+    "Baixa",
+    "Fechamento",
+    "Variação"
+]
+Análise
 
-Visualização da série temporal para identificação de tendências e ciclos de mercado.
+Foram removidas colunas que não seriam utilizadas na modelagem.
 
-Distribuição das variações diárias
+Também foi realizada a padronização dos nomes das variáveis para facilitar a leitura e manutenção do código.
 
-Análise da volatilidade dos preços através de histogramas.
+📊 Estatísticas Descritivas
+df.describe()
+Análise
 
-Correlação entre variáveis
+Foram analisadas medidas estatísticas importantes:
 
-Construção de uma matriz de correlação para compreender a relação entre os indicadores do mercado.
+Média
+Mediana
+Desvio padrão
+Valores mínimos
+Valores máximos
+
+Essa etapa permitiu compreender a distribuição dos preços ao longo dos anos.
+
+🔍 Verificação de Valores Nulos
+df.isnull().sum()
+Análise
+
+Foi realizada uma validação da qualidade dos dados.
+
+Nenhum valor ausente foi encontrado no conjunto de dados utilizado.
+
+📈 Evolução Histórica dos Preços
+plt.plot(df["Data"], df["Fechamento"])
+Análise
+
+O gráfico mostra a evolução do preço de fechamento do petróleo ao longo do tempo.
+
+A visualização permite identificar:
+
+Tendências de alta e baixa
+Períodos de crise
+Mudanças significativas no mercado
+📉 Distribuição das Variações Diárias
+sns.histplot(returns, bins=90, kde=True)
+Análise
+
+Foi construída uma distribuição das variações percentuais diárias.
+
+O objetivo foi observar:
+
+Frequência dos retornos
+Concentração dos valores
+Presença de movimentos extremos
+🔗 Matriz de Correlação
+corr = df.drop(columns=["Data"]).corr()
+sns.heatmap(corr, annot=True)
+Análise
+
+A matriz de correlação permite identificar relações entre as variáveis do dataset.
+
+Os preços de abertura, máxima, mínima e fechamento apresentaram forte correlação entre si, indicando comportamento semelhante.
 
 ⚙️ Engenharia de Atributos
+df['Dia'] = df['Data'].dt.day
+df['Mes'] = df['Data'].dt.month
+df['Ano'] = df['Data'].dt.year
+Análise
 
-Para melhorar a capacidade preditiva do modelo foram criadas novas variáveis temporais:
+Foram criadas novas variáveis temporais a partir da data original.
 
-Dia
-Mês
-Ano
+Essas informações ajudam o modelo a identificar padrões sazonais ao longo do tempo.
 
-Também foi criada a variável alvo:
+🎯 Criação da Variável Alvo
+df['Fechamento_futuro_7d'] = df["Fechamento"].shift(-7)
+Análise
 
-Fechamento_futuro_7d
+A variável alvo foi criada deslocando o preço de fechamento em 7 dias.
 
-Representando o preço de fechamento esperado sete dias após cada observação.
+Dessa forma, o modelo aprende a prever o valor futuro utilizando apenas informações disponíveis no presente.
 
-🤖 Modelo Utilizado
+🏋️ Preparação para Treinamento
+features = [
+    'Abertura',
+    'Alta',
+    'Baixa',
+    'Fechamento',
+    'Variação',
+    'Dia',
+    'Mes',
+    'Ano'
+]
+Análise
 
-Foi utilizado o algoritmo:
+Foram selecionadas as variáveis que servirão como entrada para o modelo preditivo.
 
-Random Forest Regressor
+O objetivo é utilizar informações históricas e temporais para estimar o preço futuro.
 
-Configuração:
-
+🤖 Treinamento do Modelo
 RandomForestRegressor(
     n_estimators=200,
     max_depth=10,
     random_state=42
 )
+Análise
 
-A divisão dos dados foi realizada respeitando a ordem temporal:
+Foi utilizado o algoritmo Random Forest Regressor.
 
-80% para treinamento
-20% para teste
+Configurações utilizadas:
 
-Sem embaralhamento dos registros (shuffle=False), preservando a natureza temporal da série.
+200 árvores de decisão
+Profundidade máxima de 10 níveis
+Semente fixa para reprodutibilidade
 
-📈 Resultados
+O Random Forest foi escolhido por sua capacidade de capturar relações não lineares nos dados.
 
-Métricas obtidas no conjunto de teste:
+📈 Comparação entre Valores Reais e Previstos
+plt.plot(y_test)
+plt.plot(y_pred)
+Análise
 
-Métrica	Resultado
+Foi realizada uma comparação visual entre:
+
+Valores reais
+Valores previstos pelo modelo
+
+A proximidade entre as curvas indica a capacidade do modelo em reproduzir os padrões históricos observados.
+
+📏 Avaliação do Modelo
+r2_score()
+mean_absolute_error()
+mean_squared_error()
+Resultados
+Métrica	Valor
 R²	0.8263
 MAE	3.8519
 RMSE	5.3696
-Interpretação
-O modelo consegue explicar aproximadamente 82,6% da variação dos preços futuros.
-O erro médio absoluto ficou próximo de US$ 3,85 por barril.
-Os resultados indicam boa capacidade de captura dos padrões históricos do mercado.
-🔮 Exemplo de Previsão
+Análise
+O modelo explica aproximadamente 82,6% da variação dos preços.
+O erro médio absoluto foi de US$ 3,85 por barril.
+O RMSE indica boa precisão considerando a volatilidade natural do mercado de petróleo.
+🔮 Previsão Futura
+previsao[0]
+Resultado
+Indicador	Valor
+Preço Atual	US$ 96.57
+Preço Previsto (+7 dias)	US$ 97.57
+Análise
 
-Último preço registrado:
-
-US$ 96.57
-
-Preço previsto para 7 dias à frente:
-
-US$ 97.57
-
-Variação prevista:
-
-+1.00 US$/barril
-🚀 Evolução em Relação à Versão 1
-Versão 1	Versão 2
-Análise básica dos dados	Análise exploratória completa
-Poucas visualizações	Diversos gráficos analíticos
-Estrutura simples	Pipeline organizado
-Foco em aprendizado inicial	Aplicação de boas práticas
-Sem previsão futura estruturada	Previsão para 7 dias à frente
-Avaliação limitada	Métricas R², MAE e RMSE
-Menor compreensão do problema	Engenharia de atributos e modelagem mais robusta
-
-Esta evolução demonstra meu desenvolvimento em áreas como análise exploratória, preparação de dados, modelagem preditiva e avaliação de algoritmos de Machine Learning.
-
-🛠️ Tecnologias Utilizadas
-Python
-Pandas
-NumPy
-Matplotlib
-Seaborn
-Scikit-Learn
-Random Forest Regressor
-📚 Aprendizados
-
-Ao longo do desenvolvimento deste projeto aprofundei conhecimentos em:
-
-Manipulação de dados com Pandas
-Estatística aplicada
-Visualização de dados
-Feature Engineering
-Machine Learning supervisionado
-Avaliação de modelos de regressão
-Organização de projetos de Ciência de Dados
-Boas práticas de programação em Python
+O modelo estima uma leve valorização do petróleo para os próximos sete dias, demonstrando sua capacidade de gerar previsões futuras com base em padrões históricos.
